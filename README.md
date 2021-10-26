@@ -1,13 +1,13 @@
-# tcalc
+# howlong
 
 A little duration calculator.
 
 ```sh
-$ tcalc 5m 32s + 4m 2s
+$ howlong 5m 32s + 4m 2s
 9m 37s
-$ tcalc 23h + 5h
+$ howlong 23h + 5h
 1d 4h
-$ tcalc 30s + 600s
+$ howlong 30s + 600s
 10m 30s
 ```
 
