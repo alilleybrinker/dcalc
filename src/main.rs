@@ -1,18 +1,18 @@
 use std::default::Default;
 
-#[derive(Default, Debug)]
+#[derive(Default, Debug, PartialEq, Eq, Clone, Copy)]
 struct Weeks(u64);
 
-#[derive(Default, Debug)]
+#[derive(Default, Debug, PartialEq, Eq, Clone, Copy)]
 struct Days(u64);
 
-#[derive(Default, Debug)]
+#[derive(Default, Debug, PartialEq, Eq, Clone, Copy)]
 struct Hours(u64);
 
-#[derive(Default, Debug)]
+#[derive(Default, Debug, PartialEq, Eq, Clone, Copy)]
 struct Minutes(u64);
 
-#[derive(Default, Debug)]
+#[derive(Default, Debug, PartialEq, Eq, Clone, Copy)]
 struct Seconds(u64);
 
 trait Conversion<Unit, To> {
@@ -49,13 +49,19 @@ impl Conversion<u64, Seconds> for Weeks {
     }
 }
 
-#[derive(Default, Debug)]
+#[derive(Default, Debug, PartialEq, Eq, Clone, Copy)]
 struct Duration {
     weeks: Weeks,
     days: Days,
     hours: Hours,
     minutes: Minutes,
     seconds: Seconds,
+}
+
+impl Duration {
+    fn as_seconds(&self) -> Seconds {
+        self.clone().into()
+    }
 }
 
 impl From<Duration> for Seconds {
@@ -75,46 +81,21 @@ impl From<Duration> for Seconds {
 impl From<Seconds> for Duration {
     fn from(s: Seconds) -> Duration {
         let mut s = s.0;
-        let mut weeks = Default::default();
-        let mut days = Default::default();
-        let mut hours = Default::default();
-        let mut minutes = Default::default();
-        let mut seconds = Default::default();
 
-        loop {
-            weeks = Weeks(s / Weeks::conversion_factor());
-            s -= s / Weeks::conversion_factor();
+        let weeks = Weeks(s / Weeks::conversion_factor());
+        s -= s / Weeks::conversion_factor();
 
-            if s == 0 {
-                break;
-            }
+        let days = Days(s / Days::conversion_factor());
+        s %= Days::conversion_factor();
 
-            days = Days(s / Days::conversion_factor());
-            s -= s / Days::conversion_factor();
+        let hours = Hours(s / Hours::conversion_factor());
+        s %= Hours::conversion_factor();
 
-            if s == 0 {
-                break;
-            }
+        let minutes = Minutes(s / Minutes::conversion_factor());
+        s %= Minutes::conversion_factor();
 
-            hours = Hours(s / Hours::conversion_factor());
-            s -= s / Hours::conversion_factor();
-
-            if s == 0 {
-                break;
-            }
-
-            minutes = Minutes(s / Minutes::conversion_factor());
-            s -= s / Minutes::conversion_factor();
-
-            if s == 0 {
-                break;
-            }
-
-            seconds = Seconds(s / Seconds::conversion_factor());
-            s -= s / Seconds::conversion_factor();
-
-            break;
-        }
+        let seconds = Seconds(s / Seconds::conversion_factor());
+        s %= Seconds::conversion_factor();
 
         assert_eq!(s, 0);
 
@@ -128,19 +109,21 @@ impl From<Seconds> for Duration {
     }
 }
 
-fn main() {
-    let duration = Duration {
-        hours: Hours(5),
-        ..Default::default()
-    };
+fn main() {}
 
-    println!("duration 1: {:?}", duration);
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-    let seconds: Seconds = duration.into();
+    #[test]
+    fn roundtrip_equality() {
+        let duration_1 = Duration {
+            hours: Hours(5),
+            ..Default::default()
+        };
 
-    println!("seconds: {}", seconds.0);
+        let duration_2: Duration = duration_1.as_seconds().into();
 
-    let duration: Duration = seconds.into();
-
-    println!("duration 2: {:?}", duration);
+        assert_eq!(duration_1, duration_2);
+    }
 }
