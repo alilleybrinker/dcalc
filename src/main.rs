@@ -1,10 +1,10 @@
+use anyhow::{anyhow, bail, Error, Result};
 use std::default::Default;
+use std::env;
 use std::fmt::{self, Display, Formatter};
 use std::ops::Not as _;
-use std::str::FromStr;
-use anyhow::{anyhow, bail, Error, Result};
-use std::env;
 use std::process::exit;
+use std::str::FromStr;
 
 const EXIT_FAILURE: i32 = 1;
 
@@ -58,8 +58,7 @@ fn parse_duration(s: &str, unit: &str, suffix: &str) -> Result<u64> {
         bail!("{} not ending in '{}'", unit, suffix);
     }
 
-    s
-        .split(suffix)
+    s.split(suffix)
         .next()
         .ok_or_else(|| anyhow!("no number for {}", unit))?
         .parse::<u64>()
@@ -243,58 +242,110 @@ impl FromStr for Duration {
                 } else {
                     bail!("can't set weeks twice");
                 }
-            }
-
-            if part.ends_with("d") {
+            } else if part.ends_with("d") {
                 if days.is_none() {
                     days = Some(Days::from_str(part)?);
                 } else {
                     bail!("can't set days twice");
                 }
-            }
-
-            if part.ends_with("h") {
+            } else if part.ends_with("h") {
                 if hours.is_none() {
                     hours = Some(Hours::from_str(part)?);
                 } else {
                     bail!("can't set hours twice");
                 }
-            }
-
-            if part.ends_with("m") {
+            } else if part.ends_with("m") {
                 if minutes.is_none() {
                     minutes = Some(Minutes::from_str(part)?);
                 } else {
                     bail!("can't set minutes twice");
                 }
-            }
-
-            if part.ends_with("s") {
+            } else if part.ends_with("s") {
                 if seconds.is_none() {
                     seconds = Some(Seconds::from_str(part)?);
                 } else {
                     bail!("can't set seconds twice");
                 }
+            } else {
+                let last = part
+                    .chars()
+                    .last()
+                    .ok_or_else(|| anyhow!("missing suffix"))?;
+                bail!("unknown duration suffix '{}'", last)
             }
         }
 
-        Ok(
-            Duration {
-                weeks: weeks.unwrap_or_default(),
-                days: days.unwrap_or_default(),
-                hours: hours.unwrap_or_default(),
-                minutes: minutes.unwrap_or_default(),
-                seconds: seconds.unwrap_or_default(),
-            }
-        )
+        Ok(Duration {
+            weeks: weeks.unwrap_or_default(),
+            days: days.unwrap_or_default(),
+            hours: hours.unwrap_or_default(),
+            minutes: minutes.unwrap_or_default(),
+            seconds: seconds.unwrap_or_default(),
+        })
     }
 }
 
+fn is_op(c: char) -> bool {
+    matches!(c, '+' | '-')
+}
+
+fn first_char(s: &str) -> Result<char> {
+    s.chars()
+        .next()
+        .ok_or_else(|| anyhow!("no char in substring"))
+}
+
+#[derive(Debug)]
+enum Phrase {
+    Seconds(u64),
+    Op(char),
+}
+
+impl TryFrom<String> for Phrase {
+    type Error = Error;
+
+    fn try_from(s: String) -> Result<Self> {
+        match s.as_ref() {
+            "+" | "-" => Ok(Phrase::Op(first_char(&s)?)),
+            s => Ok(Phrase::Seconds(Duration::from_str(s)?.as_seconds().0)),
+        }
+    }
+}
+
+fn parse_parts(input: &[String]) -> Result<Vec<String>> {
+    let mut parts = Vec::new();
+    let mut so_far = String::new();
+
+    for part in input {
+        let part = part.trim();
+
+        if is_op(first_char(part)?) {
+            parts.push(so_far.trim().to_owned());
+            parts.push(part.to_owned());
+            so_far = String::default();
+        } else {
+            so_far.push_str(&format!(" {}", part));
+        }
+    }
+
+    parts.push(so_far.trim().to_owned());
+    Ok(parts)
+}
+
 fn run() -> Result<()> {
-    let args = env::args();
-    let d_str = args.skip(1).next().ok_or_else(|| anyhow!("no equation provided"))?;
-    let duration = Duration::from_str(&d_str)?;
-    println!("{}", duration);
+    let input = env::args().skip(1).collect::<Vec<_>>();
+
+    if input.is_empty() {
+        bail!("missing input");
+    }
+
+    let parts = parse_parts(&input)?
+        .into_iter()
+        .map(Phrase::try_from)
+        .collect::<Result<Vec<Phrase>>>()?;
+
+    println!("{:#?}", parts);
+
     Ok(())
 }
 
