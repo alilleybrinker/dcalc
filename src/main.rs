@@ -342,37 +342,26 @@ enum Op {
 }
 
 fn solve_equation(equation: &[Phrase]) -> Result<Duration> {
-    // Setup and fill our stacks.
-    let mut values = Vec::new();
-    let mut ops = Vec::new();
+    let mut result = 0;
+    let mut next_op = Op::Plus;
 
     for part in equation {
         match part {
-            Phrase::Seconds(u) => values.push(*u as i128),
-            Phrase::Plus => ops.push(Op::Plus),
-            Phrase::Minus => ops.push(Op::Minus),
+            Phrase::Seconds(u) => match next_op {
+                Op::Plus => result += u,
+                Op::Minus => result -= u,
+            },
+            Phrase::Plus => next_op = Op::Plus,
+            Phrase::Minus => next_op = Op::Minus,
         }
     }
 
-    // Evaluate using the stacks.
-    let result = loop {
-        if ops.is_empty() {
-            break *values
-                .get(0)
-                .ok_or_else(|| anyhow!("missing result"))?;
-        }
+    Ok(Seconds(result).into())
+}
 
-        let o1 = values.pop().ok_or_else(|| anyhow!("missing operand"))?;
-        let o2 = values.pop().ok_or_else(|| anyhow!("missing operand"))?;
-        let op = ops.pop().ok_or_else(|| anyhow!("missing operation"))?;
-
-        match op {
-            Op::Plus => values.push(o2 + o1),
-            Op::Minus => values.push(o2 - o1),
-        }
-    };
-
-    Ok(Seconds(result as u64).into())
+fn parse_and_solve(input: &[String]) -> Result<Duration> {
+    let equation = parse_equation(input)?;
+    solve_equation(&equation)
 }
 
 fn run() -> Result<()> {
@@ -382,8 +371,7 @@ fn run() -> Result<()> {
         bail!("missing input");
     }
 
-    let equation = parse_equation(&input)?;
-    let result = solve_equation(&equation)?;
+    let result = parse_and_solve(&input)?;
     println!("{}", result);
     Ok(())
 }
@@ -505,5 +493,18 @@ mod tests {
         };
 
         assert_eq!(expected_duration, seconds.into());
+    }
+
+    #[test]
+    fn double_subtraction() {
+        let input = vec!["6d", "-", "1d", "-", "2d"]
+            .into_iter()
+            .map(str::to_string)
+            .collect::<Vec<_>>();
+
+        let result = parse_and_solve(&input).unwrap();
+        let expected_result = Duration::from_str("3d").unwrap();
+
+        assert_eq!(expected_result, result);
     }
 }
