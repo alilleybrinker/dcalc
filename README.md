@@ -1,6 +1,9 @@
 # howlong
 
-A little duration calculator.
+`howlong` is a little CLI duration calculator handling addition and
+subtraction of weeks, days, hours, minutes, and seconds.
+
+## Examples
 
 ```sh
 $ howlong 5m 32s + 4m 2s
