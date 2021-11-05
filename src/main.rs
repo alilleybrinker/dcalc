@@ -359,7 +359,7 @@ fn solve_equation(equation: &[Phrase]) -> Result<Duration> {
         if ops.is_empty() {
             break *values
                 .get(0)
-                .ok_or_else(|| anyhow!("this should never happen"))?;
+                .ok_or_else(|| anyhow!("missing result"))?;
         }
 
         let o1 = values.pop().ok_or_else(|| anyhow!("missing operand"))?;
