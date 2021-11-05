@@ -1,7 +1,7 @@
 [package]
-name = "howlong"
+name = "dcalc"
 description = "CLI duration calculator."
-repository = "https://github.com/alilleybrinker/howlong"
+repository = "https://github.com/alilleybrinker/dcalc"
 license = "MIT"
 version = "0.1.0"
 rust-version = "1.56"
