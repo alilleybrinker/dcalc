@@ -199,7 +199,7 @@ impl From<Seconds> for Duration {
         let mut s = s.0;
 
         let weeks = Weeks(s / Weeks::conversion_factor());
-        s -= s / Weeks::conversion_factor();
+        s %= Weeks::conversion_factor();
 
         let days = Days(s / Days::conversion_factor());
         s %= Days::conversion_factor();
@@ -423,9 +423,9 @@ mod tests {
             ..Default::default()
         };
 
-        let expected_seconds = 60;
+        let expected_seconds = Seconds(60);
 
-        assert_eq!(expected_seconds, duration.as_seconds().0)
+        assert_eq!(expected_seconds, duration.as_seconds());
     }
 
     #[test]
@@ -435,9 +435,9 @@ mod tests {
             ..Default::default()
         };
 
-        let expected_seconds = 60 * 60;
+        let expected_seconds = Seconds(60 * 60);
 
-        assert_eq!(expected_seconds, duration.as_seconds().0)
+        assert_eq!(expected_seconds, duration.as_seconds());
     }
 
     #[test]
@@ -447,9 +447,9 @@ mod tests {
             ..Default::default()
         };
 
-        let expected_seconds = 60 * 60 * 24;
+        let expected_seconds = Seconds(60 * 60 * 24);
 
-        assert_eq!(expected_seconds, duration.as_seconds().0)
+        assert_eq!(expected_seconds, duration.as_seconds());
     }
 
     #[test]
@@ -459,8 +459,56 @@ mod tests {
             ..Default::default()
         };
 
-        let expected_seconds = 60 * 60 * 24 * 7;
+        let expected_seconds = Seconds(60 * 60 * 24 * 7);
 
-        assert_eq!(expected_seconds, duration.as_seconds().0)
+        assert_eq!(expected_seconds, duration.as_seconds());
+    }
+
+    #[test]
+    fn seconds_to_minutes() {
+        let seconds = Seconds(60);
+
+        let expected_duration = Duration {
+            minutes: Minutes(1),
+            ..Default::default()
+        };
+
+        assert_eq!(expected_duration, seconds.into());
+    }
+
+    #[test]
+    fn seconds_to_hours() {
+        let seconds = Seconds(60 * 60);
+
+        let expected_duration = Duration {
+            hours: Hours(1),
+            ..Default::default()
+        };
+
+        assert_eq!(expected_duration, seconds.into());
+    }
+
+    #[test]
+    fn seconds_to_days() {
+        let seconds = Seconds(60 * 60 * 24);
+
+        let expected_duration = Duration {
+            days: Days(1),
+            ..Default::default()
+        };
+
+        assert_eq!(expected_duration, seconds.into());
+    }
+
+    #[test]
+    fn seconds_to_weeks() {
+        let seconds = Seconds(60 * 60 * 24 * 7);
+
+        let expected_duration = Duration {
+            weeks: Weeks(1),
+            ..Default::default()
+        };
+
+        assert_eq!(expected_duration, seconds.into());
     }
 }
