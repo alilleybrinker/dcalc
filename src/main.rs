@@ -1,6 +1,12 @@
 use std::default::Default;
 use std::fmt::{self, Display, Formatter};
 use std::ops::Not as _;
+use std::str::FromStr;
+use anyhow::{anyhow, bail, Error, Result};
+use std::env;
+use std::process::exit;
+
+const EXIT_FAILURE: i32 = 1;
 
 #[derive(Default, Debug, PartialEq, Eq, Clone, Copy)]
 struct Weeks(u64);
@@ -47,6 +53,58 @@ impl Display for Seconds {
     }
 }
 
+fn parse_duration(s: &str, unit: &str, suffix: &str) -> Result<u64> {
+    if s.ends_with(suffix).not() {
+        bail!("{} not ending in '{}'", unit, suffix);
+    }
+
+    s
+        .split(suffix)
+        .next()
+        .ok_or_else(|| anyhow!("no number for {}", unit))?
+        .parse::<u64>()
+        .map_err(Into::into)
+}
+
+impl FromStr for Weeks {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self> {
+        Ok(Weeks(parse_duration(s, "weeks", "w")?))
+    }
+}
+
+impl FromStr for Days {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self> {
+        Ok(Days(parse_duration(s, "days", "d")?))
+    }
+}
+
+impl FromStr for Hours {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self> {
+        Ok(Hours(parse_duration(s, "hours", "h")?))
+    }
+}
+
+impl FromStr for Minutes {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self> {
+        Ok(Minutes(parse_duration(s, "minutes", "m")?))
+    }
+}
+
+impl FromStr for Seconds {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self> {
+        Ok(Seconds(parse_duration(s, "seconds", "s")?))
+    }
+}
 
 trait Conversion<Unit, To> {
     fn conversion_factor() -> Unit;
@@ -168,16 +226,83 @@ impl From<Seconds> for Duration {
     }
 }
 
-fn main() {
-    let duration = Duration {
-        weeks: Weeks(2),
-        days: Days(1),
-        hours: Hours(5),
-        minutes: Minutes(35),
-        seconds: Seconds(12),
-    };
+impl FromStr for Duration {
+    type Err = Error;
 
+    fn from_str(s: &str) -> Result<Self> {
+        let mut weeks = None;
+        let mut days = None;
+        let mut hours = None;
+        let mut minutes = None;
+        let mut seconds = None;
+
+        for part in s.split(" ") {
+            if part.ends_with("w") {
+                if weeks.is_none() {
+                    weeks = Some(Weeks::from_str(part)?);
+                } else {
+                    bail!("can't set weeks twice");
+                }
+            }
+
+            if part.ends_with("d") {
+                if days.is_none() {
+                    days = Some(Days::from_str(part)?);
+                } else {
+                    bail!("can't set days twice");
+                }
+            }
+
+            if part.ends_with("h") {
+                if hours.is_none() {
+                    hours = Some(Hours::from_str(part)?);
+                } else {
+                    bail!("can't set hours twice");
+                }
+            }
+
+            if part.ends_with("m") {
+                if minutes.is_none() {
+                    minutes = Some(Minutes::from_str(part)?);
+                } else {
+                    bail!("can't set minutes twice");
+                }
+            }
+
+            if part.ends_with("s") {
+                if seconds.is_none() {
+                    seconds = Some(Seconds::from_str(part)?);
+                } else {
+                    bail!("can't set seconds twice");
+                }
+            }
+        }
+
+        Ok(
+            Duration {
+                weeks: weeks.unwrap_or_default(),
+                days: days.unwrap_or_default(),
+                hours: hours.unwrap_or_default(),
+                minutes: minutes.unwrap_or_default(),
+                seconds: seconds.unwrap_or_default(),
+            }
+        )
+    }
+}
+
+fn run() -> Result<()> {
+    let args = env::args();
+    let d_str = args.skip(1).next().ok_or_else(|| anyhow!("no equation provided"))?;
+    let duration = Duration::from_str(&d_str)?;
     println!("{}", duration);
+    Ok(())
+}
+
+fn main() {
+    if let Err(err) = run() {
+        eprintln!("error: {}", err);
+        exit(EXIT_FAILURE);
+    }
 }
 
 #[cfg(test)]
