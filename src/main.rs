@@ -298,15 +298,19 @@ fn first_char(s: &str) -> Result<char> {
 #[derive(Debug)]
 enum Phrase {
     Seconds(u64),
-    Op(char),
+    Plus,
+    Minus,
 }
+
+type Equation = Vec<Phrase>;
 
 impl TryFrom<String> for Phrase {
     type Error = Error;
 
     fn try_from(s: String) -> Result<Self> {
         match s.as_ref() {
-            "+" | "-" => Ok(Phrase::Op(first_char(&s)?)),
+            "+" => Ok(Phrase::Plus),
+            "-" => Ok(Phrase::Minus),
             s => Ok(Phrase::Seconds(Duration::from_str(s)?.as_seconds().0)),
         }
     }
@@ -332,6 +336,50 @@ fn parse_parts(input: &[String]) -> Result<Vec<String>> {
     Ok(parts)
 }
 
+fn parse_equation(input: &[String]) -> Result<Equation> {
+    parse_parts(&input)?
+        .into_iter()
+        .map(Phrase::try_from)
+        .collect()
+}
+
+enum Op {
+    Plus,
+    Minus,
+}
+
+fn solve_equation(equation: &[Phrase]) -> Result<Duration> {
+    // Setup and fill our stacks.
+    let mut values = Vec::new();
+    let mut ops = Vec::new();
+
+    for part in equation {
+        match part {
+            Phrase::Seconds(u) => values.push(*u),
+            Phrase::Plus => ops.push(Op::Plus),
+            Phrase::Minus => ops.push(Op::Minus),
+        }
+    }
+
+    // Evaluate using the stacks.
+    let result = loop {
+        if ops.len() == 0 {
+            break *values.get(0).ok_or_else(|| anyhow!("this should never happen"))?;
+        }
+
+        let o1 = values.pop().ok_or_else(|| anyhow!("missing operand"))?;
+        let o2 = values.pop().ok_or_else(|| anyhow!("missing operand"))?;
+        let op = ops.pop().ok_or_else(|| anyhow!("missing operation"))?;
+
+        match op {
+            Op::Plus => values.push(o2 + o1),
+            Op::Minus => values.push(o2 - o1),
+        }
+    };
+
+    Ok(Seconds(result).into())
+}
+
 fn run() -> Result<()> {
     let input = env::args().skip(1).collect::<Vec<_>>();
 
@@ -339,13 +387,9 @@ fn run() -> Result<()> {
         bail!("missing input");
     }
 
-    let parts = parse_parts(&input)?
-        .into_iter()
-        .map(Phrase::try_from)
-        .collect::<Result<Vec<Phrase>>>()?;
-
-    println!("{:#?}", parts);
-
+    let equation = parse_equation(&input)?;
+    let result = solve_equation(&equation)?;
+    println!("{}", result);
     Ok(())
 }
 
