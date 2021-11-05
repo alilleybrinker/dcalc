@@ -150,7 +150,7 @@ struct Duration {
 
 impl Duration {
     fn as_seconds(&self) -> Seconds {
-        self.clone().into()
+        (*self).into()
     }
 }
 
@@ -235,32 +235,32 @@ impl FromStr for Duration {
         let mut minutes = None;
         let mut seconds = None;
 
-        for part in s.split(" ") {
-            if part.ends_with("w") {
+        for part in s.split(' ') {
+            if part.ends_with('w') {
                 if weeks.is_none() {
                     weeks = Some(Weeks::from_str(part)?);
                 } else {
                     bail!("can't set weeks twice");
                 }
-            } else if part.ends_with("d") {
+            } else if part.ends_with('d') {
                 if days.is_none() {
                     days = Some(Days::from_str(part)?);
                 } else {
                     bail!("can't set days twice");
                 }
-            } else if part.ends_with("h") {
+            } else if part.ends_with('h') {
                 if hours.is_none() {
                     hours = Some(Hours::from_str(part)?);
                 } else {
                     bail!("can't set hours twice");
                 }
-            } else if part.ends_with("m") {
+            } else if part.ends_with('m') {
                 if minutes.is_none() {
                     minutes = Some(Minutes::from_str(part)?);
                 } else {
                     bail!("can't set minutes twice");
                 }
-            } else if part.ends_with("s") {
+            } else if part.ends_with('s') {
                 if seconds.is_none() {
                     seconds = Some(Seconds::from_str(part)?);
                 } else {
@@ -316,7 +316,7 @@ impl TryFrom<String> for Phrase {
     }
 }
 
-fn parse_parts(input: &[String]) -> Result<Vec<String>> {
+fn parse_equation(input: &[String]) -> Result<Equation> {
     let mut parts = Vec::new();
     let mut so_far = String::new();
 
@@ -324,23 +324,16 @@ fn parse_parts(input: &[String]) -> Result<Vec<String>> {
         let part = part.trim();
 
         if is_op(first_char(part)?) {
-            parts.push(so_far.trim().to_owned());
-            parts.push(part.to_owned());
+            parts.push(Phrase::try_from(so_far.trim().to_owned())?);
+            parts.push(Phrase::try_from(part.to_owned())?);
             so_far = String::default();
         } else {
             so_far.push_str(&format!(" {}", part));
         }
     }
 
-    parts.push(so_far.trim().to_owned());
+    parts.push(Phrase::try_from(so_far.trim().to_owned())?);
     Ok(parts)
-}
-
-fn parse_equation(input: &[String]) -> Result<Equation> {
-    parse_parts(&input)?
-        .into_iter()
-        .map(Phrase::try_from)
-        .collect()
 }
 
 enum Op {
@@ -363,8 +356,10 @@ fn solve_equation(equation: &[Phrase]) -> Result<Duration> {
 
     // Evaluate using the stacks.
     let result = loop {
-        if ops.len() == 0 {
-            break *values.get(0).ok_or_else(|| anyhow!("this should never happen"))?;
+        if ops.is_empty() {
+            break *values
+                .get(0)
+                .ok_or_else(|| anyhow!("this should never happen"))?;
         }
 
         let o1 = values.pop().ok_or_else(|| anyhow!("missing operand"))?;
