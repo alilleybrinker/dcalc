@@ -355,7 +355,7 @@ fn solve_equation(equation: &[Phrase]) -> Result<Duration> {
 
     for part in equation {
         match part {
-            Phrase::Seconds(u) => values.push(*u),
+            Phrase::Seconds(u) => values.push(*u as i128),
             Phrase::Plus => ops.push(Op::Plus),
             Phrase::Minus => ops.push(Op::Minus),
         }
@@ -377,7 +377,7 @@ fn solve_equation(equation: &[Phrase]) -> Result<Duration> {
         }
     };
 
-    Ok(Seconds(result).into())
+    Ok(Seconds(result as u64).into())
 }
 
 fn run() -> Result<()> {
