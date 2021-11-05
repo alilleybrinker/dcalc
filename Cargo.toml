@@ -8,6 +8,10 @@ rust-version = "1.56"
 edition = "2021"
 keywords = ["time", "cli"]
 categories = ["command-line-utilities"]
+include = [
+    "**/*.rs",
+    "Cargo.toml",
+]
 
 [dependencies]
 anyhow = "1.0.0"
