@@ -415,4 +415,52 @@ mod tests {
 
         assert_eq!(duration_1, duration_2);
     }
+
+    #[test]
+    fn minutes_to_seconds() {
+        let duration = Duration {
+            minutes: Minutes(1),
+            ..Default::default()
+        };
+
+        let expected_seconds = 60;
+
+        assert_eq!(expected_seconds, duration.as_seconds().0)
+    }
+
+    #[test]
+    fn hours_to_seconds() {
+        let duration = Duration {
+            hours: Hours(1),
+            ..Default::default()
+        };
+
+        let expected_seconds = 60 * 60;
+
+        assert_eq!(expected_seconds, duration.as_seconds().0)
+    }
+
+    #[test]
+    fn days_to_seconds() {
+        let duration = Duration {
+            days: Days(1),
+            ..Default::default()
+        };
+
+        let expected_seconds = 60 * 60 * 24;
+
+        assert_eq!(expected_seconds, duration.as_seconds().0)
+    }
+
+    #[test]
+    fn weeks_to_seconds() {
+        let duration = Duration {
+            weeks: Weeks(1),
+            ..Default::default()
+        };
+
+        let expected_seconds = 60 * 60 * 24 * 7;
+
+        assert_eq!(expected_seconds, duration.as_seconds().0)
+    }
 }
